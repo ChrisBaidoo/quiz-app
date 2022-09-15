@@ -1,59 +1,27 @@
 import React, { useState, useEffect } from "react";
-import { Button } from "@mui/material";
 import "./App.css";
-import { Question } from "./components/question";
-import { randomInts } from "./utils";
-import { Box, Typography, Chip } from "@mui/material";
+import { randomInts } from "./functions/utils";
+import QuizCard from "./components/QuizCard";
+import QuizRestart from "./components/QuizRestart";
+import useFetchData from "./hooks/useFetchData";
+import { addCorrectAnswer } from "./functions/quiz";
 
 function App() {
-  const [questions, setQuestions] = useState<
-    { name: string; imageUrl: string }[]
-  >([]);
-  const [currentQuestion, setCurrentQuestion] = useState<number | null>(null);
+  const {
+    questions,
+    allPossibleAnswers,
+    currentQuestion,
+    fetchData,
+    setCurrentQuestion,
+  } = useFetchData();
+
   const [currentQuestionAnswers, setCurrentQuestionAnswers] = useState<
     [string, string, string, string] | null
   >(null);
-  const [allPossibleAnswers, setAllPossibleAnswers] = useState<string[]>();
+
   const [score, setScore] = useState<number>(0);
   const [gameOver, setGameOver] = useState<boolean>(false);
   const [message, setMessage] = useState<string>("");
-
-  const fetchData = async () => {
-    const response = await fetch("https://api.disneyapi.dev/characters"); // TODO get more than the first 50
-    const data = await response.json();
-
-    const filterData = data.data.filter(
-      (x: any) => x.tvShows.length || x.films.length
-    );
-
-    const tenQuestions = randomInts(10, filterData.length - 1).map((key) => {
-      const { name, imageUrl } = filterData[key];
-      return { name, imageUrl };
-    });
-    setQuestions(tenQuestions);
-
-    setAllPossibleAnswers(filterData.map((answer: any) => answer.name));
-
-    setCurrentQuestion(0);
-  };
-
-  const addCorrectAnswer = (
-    answers: [string, string, string, string],
-    currentAnswer: string
-  ): [string, string, string, string] => {
-    const [randomIndex] = randomInts(1, 3);
-    answers[randomIndex] = currentAnswer;
-    return Array.from(new Set<string>([...answers])) as [
-      string,
-      string,
-      string,
-      string
-    ];
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, []);
 
   useEffect(() => {
     if (allPossibleAnswers && currentQuestion !== null) {
@@ -96,57 +64,20 @@ function App() {
 
   return (
     <div className="App">
-      {gameOver && (
-        <Box sx={{ marginTop: "20px" }}>
-          <Typography sx={{ fontSize: 20 }} color="text.secondary" gutterBottom>
-            Your final score is {score}
-          </Typography>
-
-          <Button
-            sx={{ textTransform: "none" }}
-            variant="contained"
-            onClick={() => restartGame()}
-          >
-            Restart
-          </Button>
-        </Box>
-      )}
+      {gameOver && <QuizRestart score={score} restartGame={restartGame} />}
 
       {!gameOver && currentQuestion !== null && currentQuestionAnswers && (
         <>
-          <Box>
-            {currentQuestion + 1}/{questions.length}
-          </Box>
-          <Box>
-            <Typography
-              sx={{ fontSize: 20 }}
-              color="text.secondary"
-              gutterBottom
-            >
-              {message}
-            </Typography>
-          </Box>
-
-          <Question
-            image={questions[currentQuestion].imageUrl}
+          <QuizCard
             answers={currentQuestionAnswers}
             selectAnswer={checkAnswer}
-            disabled={message !== ""}
+            currentQuestion={currentQuestion === null ? 0 : currentQuestion}
+            questions={questions}
+            nextQuestion={nextQuestion}
+            setGameOver={() => setGameOver(true)}
+            message={message}
+            disabled={false}
           />
-
-          {currentQuestion < 9 && (
-            <Button
-              variant="contained"
-              onClick={() => nextQuestion(currentQuestion)}
-            >
-              Next
-            </Button>
-          )}
-          {currentQuestion === 9 && (
-            <Button variant="contained" onClick={() => setGameOver(true)}>
-              Finish
-            </Button>
-          )}
         </>
       )}
       {!allPossibleAnswers && <h1>Fetching questions</h1>}
