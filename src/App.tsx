@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@mui/material";
 import "./App.css";
-import { GameOver } from "./components/gameOver";
 import { Question } from "./components/question";
 import { randomInts } from "./utils";
-import { Box } from "@mui/system";
+import { Box, Typography, Chip } from "@mui/material";
 
 function App() {
   const [questions, setQuestions] = useState<
@@ -15,6 +14,9 @@ function App() {
     [string, string, string, string] | null
   >(null);
   const [allPossibleAnswers, setAllPossibleAnswers] = useState<string[]>();
+  const [score, setScore] = useState<number>(0);
+  const [gameOver, setGameOver] = useState<boolean>(false);
+  const [message, setMessage] = useState<string>("");
 
   const fetchData = async () => {
     const response = await fetch("https://api.disneyapi.dev/characters"); // TODO get more than the first 50
@@ -70,38 +72,84 @@ function App() {
   const checkAnswer = (selectAnswer: string) => {
     if (currentQuestion !== null) {
       if (selectAnswer === questions[currentQuestion].name) {
-        console.log("right");
-      } else console.log("wrong");
+        setScore(score + 10);
+        setMessage("Correct Answer");
+      } else {
+        setMessage(
+          `Wrong, correct answer is ${questions[currentQuestion].name}`
+        );
+      }
     }
+  };
+
+  const restartGame = () => {
+    setScore(0);
+    setGameOver(false);
+    fetchData();
+    setMessage("");
+  };
+
+  const nextQuestion = (currentQuestion: any) => {
+    setCurrentQuestion(currentQuestion + 1);
+    setMessage("");
   };
 
   return (
     <div className="App">
-      {currentQuestion !== null && currentQuestionAnswers ? (
-        <div>
+      {gameOver && (
+        <Box sx={{ marginTop: "20px" }}>
+          <Typography sx={{ fontSize: 20 }} color="text.secondary" gutterBottom>
+            Your final score is {score}
+          </Typography>
+
+          <Button
+            sx={{ textTransform: "none" }}
+            variant="contained"
+            onClick={() => restartGame()}
+          >
+            Restart
+          </Button>
+        </Box>
+      )}
+
+      {!gameOver && currentQuestion !== null && currentQuestionAnswers && (
+        <>
           <Box>
             {currentQuestion + 1}/{questions.length}
           </Box>
-          <Box>{questions[currentQuestion].name}</Box>
+          <Box>
+            <Typography
+              sx={{ fontSize: 20 }}
+              color="text.secondary"
+              gutterBottom
+            >
+              {message}
+            </Typography>
+          </Box>
+
           <Question
             image={questions[currentQuestion].imageUrl}
             answers={currentQuestionAnswers}
             selectAnswer={checkAnswer}
+            disabled={message !== ""}
           />
 
           {currentQuestion < 9 && (
             <Button
               variant="contained"
-              onClick={() => setCurrentQuestion(currentQuestion + 1)}
+              onClick={() => nextQuestion(currentQuestion)}
             >
               Next
             </Button>
           )}
-          {currentQuestion && currentQuestion > 10 && <GameOver />}
-        </div>
-      ) : (
-        <h1>Fetching questions</h1>
+          {currentQuestion === 9 && (
+            <Button variant="contained" onClick={() => setGameOver(true)}>
+              Finish
+            </Button>
+          )}
+        </>
       )}
+      {!allPossibleAnswers && <h1>Fetching questions</h1>}
     </div>
   );
 }

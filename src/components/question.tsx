@@ -4,6 +4,7 @@ interface Props {
   image: string;
   answers: [string, string, string, string];
   selectAnswer: (answer: string) => void;
+  disabled: boolean;
 }
 
 export const Question = (props: Props) => {
@@ -23,6 +24,7 @@ export const Question = (props: Props) => {
             key={answer}
             onClick={() => props.selectAnswer(answer)}
             sx={{ textTransform: "none" }}
+            disabled={props.disabled}
           >
             {answer}
           </Button>
