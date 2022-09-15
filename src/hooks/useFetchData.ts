@@ -22,10 +22,7 @@ const useFetchData = () => {
     });
     setQuestions(tenQuestions);
 
-    const uniqueData = [
-      ...new Set<string>(filterData.map((answer: any) => answer.name)),
-    ];
-    setAllPossibleAnswers(uniqueData);
+    setAllPossibleAnswers(filterData.map((answer: any) => answer.name));
 
     setCurrentQuestion(0);
   };
