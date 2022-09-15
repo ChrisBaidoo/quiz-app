@@ -1,24 +1,20 @@
 import React, { useState, useEffect } from "react";
+import { Button } from "@mui/material";
 import "./App.css";
+import { GameOver } from "./components/gameOver";
 import { Question } from "./components/question";
-
-const randomInts = (quantity: number, max: number): number[] => {
-  const set = new Set<number>();
-  while (set.size < quantity) {
-    set.add(Math.floor(Math.random() * max));
-  }
-  return [...set];
-};
+import { randomInts } from "./utils";
+import { Box } from "@mui/system";
 
 function App() {
   const [questions, setQuestions] = useState<
     { name: string; imageUrl: string }[]
   >([]);
-  const [currentQuestion, setCurrentQuestion] = useState(0);
+  const [currentQuestion, setCurrentQuestion] = useState<number | null>(null);
   const [currentQuestionAnswers, setCurrentQuestionAnswers] = useState<
     [string, string, string, string] | null
   >(null);
-  const [allPossibleAnswers, setAllPossibleAnswers] = useState<any>();
+  const [allPossibleAnswers, setAllPossibleAnswers] = useState<string[]>();
 
   const fetchData = async () => {
     const response = await fetch("https://api.disneyapi.dev/characters"); // TODO get more than the first 50
@@ -32,43 +28,80 @@ function App() {
       const { name, imageUrl } = filterData[key];
       return { name, imageUrl };
     });
-
-    const fourAnswers = randomInts(4, filterData.length - 1).map((key) => {
-      const { name } = filterData[key];
-      return { name };
-    });
-
-    setAllPossibleAnswers(fourAnswers);
-
     setQuestions(tenQuestions);
 
+    setAllPossibleAnswers(filterData.map((answer: any) => answer.name));
 
+    setCurrentQuestion(0);
+  };
 
-  console.log(currentQuestionAnswers);
-  console.log(allPossibleAnswers);
-  console.log(currentQuestion);
-  console.log(questions);
+  const addCorrectAnswer = (
+    answers: [string, string, string, string],
+    currentAnswer: string
+  ): [string, string, string, string] => {
+    const [randomIndex] = randomInts(1, 3);
+    answers[randomIndex] = currentAnswer;
+    return Array.from(new Set<string>([...answers])) as [
+      string,
+      string,
+      string,
+      string
+    ];
+  };
 
   useEffect(() => {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    if (allPossibleAnswers && currentQuestion !== null) {
+      const fourAnswers = randomInts(4, allPossibleAnswers.length - 1).map(
+        (key: number) => allPossibleAnswers[key]
+      ) as [string, string, string, string];
 
+      const answers = addCorrectAnswer(
+        fourAnswers,
+        questions[currentQuestion].name
+      );
+      setCurrentQuestionAnswers(answers);
+    }
+  }, [currentQuestion, allPossibleAnswers, questions]);
+
+  const checkAnswer = (selectAnswer: string) => {
+    if (currentQuestion !== null) {
+      if (selectAnswer === questions[currentQuestion].name) {
+        console.log("right");
+      } else console.log("wrong");
+    }
+  };
 
   return (
     <div className="App">
-      {currentQuestionAnswers ? (
-        <Question
-          image={questions[currentQuestion].imageUrl}
-          answers={currentQuestionAnswers}
-          allPossibleAnswers={allPossibleAnswers}
-        />
+      {currentQuestion !== null && currentQuestionAnswers ? (
+        <div>
+          <Box>
+            {currentQuestion + 1}/{questions.length}
+          </Box>
+          <Box>{questions[currentQuestion].name}</Box>
+          <Question
+            image={questions[currentQuestion].imageUrl}
+            answers={currentQuestionAnswers}
+            selectAnswer={checkAnswer}
+          />
+
+          {currentQuestion < 9 && (
+            <Button
+              variant="contained"
+              onClick={() => setCurrentQuestion(currentQuestion + 1)}
+            >
+              Next
+            </Button>
+          )}
+          {currentQuestion && currentQuestion > 10 && <GameOver />}
+        </div>
       ) : (
-        "Loading...."
+        <h1>Fetching questions</h1>
       )}
-      <button onClick={() => setCurrentQuestion(currentQuestion + 1)}>
-        Next
-      </button>
     </div>
   );
 }
